@@ -23,6 +23,8 @@
 
 package de.appplant.cordova.plugin.notification;
 
+import java.util.Random;
+
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
@@ -30,8 +32,6 @@ import android.net.Uri;
 import android.support.v4.app.NotificationCompat;
 
 import org.json.JSONObject;
-
-import java.util.Random;
 
 /**
  * Builder class for local notifications. Build fully configured local
@@ -53,7 +53,7 @@ public class Builder {
 
     // Activity to handle the click event
     private Class<?> clickActivity = ClickActivity.class;
-
+    NotificationCompat.Builder builder;
     /**
      * Constructor
      *
@@ -114,36 +114,40 @@ public class Builder {
     /**
      * Creates the notification with all its options passed through JS.
      */
+   
+   
     public Notification build() {
-        Uri sound     = options.getSoundUri();
-        int smallIcon = options.getSmallIcon();
-        int ledColor  = options.getLedColor();
-        NotificationCompat.Builder builder;
+        Uri sound = options.getSoundUri();
+        NotificationCompat.BigTextStyle style;
+        int number = options.getBadgeNumber();
+        style = new NotificationCompat.BigTextStyle()
+                .bigText(options.getText());
 
         builder = new NotificationCompat.Builder(context)
                 .setDefaults(0)
                 .setContentTitle(options.getTitle())
                 .setContentText(options.getText())
-                .setNumber(options.getBadgeNumber())
+                 //.setNumber(options.getBadgeNumber())
                 .setTicker(options.getText())
-                .setAutoCancel(options.isAutoClear())
+                .setSmallIcon(options.getSmallIcon())
+                .setLargeIcon(options.getIconBitmap())
+                .setAutoCancel(true)
                 .setOngoing(options.isOngoing())
-                .setColor(options.getColor());
-
-        if (ledColor != 0) {
-            builder.setLights(ledColor, options.getLedOnTime(), options.getLedOffTime());
-        }
-
-        if (sound != null) {
-            builder.setSound(sound);
-        }
-
-        if (smallIcon == 0) {
-            builder.setSmallIcon(options.getIcon());
-        } else {
-            builder.setSmallIcon(options.getSmallIcon());
-            builder.setLargeIcon(options.getIconBitmap());
-        }
+//                .setStyle(new NotificationCompat.BigTextStyle()
+//                        .bigText(options.getText());
+                .setStyle(style);
+		        if (number == 1){
+		        	
+		        	builder.setProgress(0, 0, true)
+		           .setLights(options.getLedColor(), 500, 500);
+		        }
+		        else{
+		        	builder.setProgress(0, 0, false)
+		            .setLights(options.getLedColor(), 500, 500);
+		        }
+//		        if (sound != null) {
+//		            builder.setSound(sound);
+//		        }
 
         applyDeleteReceiver(builder);
         applyContentReceiver(builder);
@@ -163,14 +167,14 @@ public class Builder {
         if (clearReceiver == null)
             return;
 
-        Intent intent = new Intent(context, clearReceiver)
-                .setAction(options.getIdStr())
+        Intent deleteIntent = new Intent(context, clearReceiver)
+                .setAction(options.getId())
                 .putExtra(Options.EXTRA, options.toString());
 
-        PendingIntent deleteIntent = PendingIntent.getBroadcast(
-                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent dpi = PendingIntent.getBroadcast(
+                context, 0, deleteIntent, PendingIntent.FLAG_CANCEL_CURRENT);
 
-        builder.setDeleteIntent(deleteIntent);
+        builder.setDeleteIntent(dpi);
     }
 
     /**
@@ -189,10 +193,10 @@ public class Builder {
                 .putExtra(Options.EXTRA, options.toString())
                 .setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
 
-        int reqCode = new Random().nextInt();
+        int requestCode = new Random().nextInt();
 
         PendingIntent contentIntent = PendingIntent.getActivity(
-                context, reqCode, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                context, requestCode, intent, PendingIntent.FLAG_CANCEL_CURRENT);
 
         builder.setContentIntent(contentIntent);
     }
